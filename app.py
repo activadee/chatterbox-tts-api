@@ -282,4 +282,4 @@ with gr.Blocks(title="Chatterbox TTS API", theme=gr.themes.Soft()) as demo:
 
 # Launch
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(show_api=True)
