@@ -18,31 +18,23 @@ tags:
 
 # Chatterbox TTS API
 
-A standalone REST API service for Chatterbox TTS (Text-to-Speech) with voice cloning, speaker diarization, and dialogue generation capabilities.
+A Gradio-based web interface and API for Chatterbox TTS (Text-to-Speech) with voice cloning and dialogue generation capabilities.
 
 ## Features
 
-- **Text-to-Speech**: Convert text to natural-sounding speech
-- **Voice Cloning**: Clone voices from audio samples
-- **Speaker Diarization**: Identify and separate different speakers in audio
-- **Dialogue Generation**: Generate multi-speaker dialogues with different voices
-- **Video Pipeline**: Complete pipeline for generating dialogue videos (audio only, video generation via FFmpeg)
+- **Text-to-Speech**: Convert text to natural-sounding speech with voice cloning
+- **Voice Cloning**: Clone voices from audio samples  
+- **Dialogue Generation**: Generate multi-speaker conversations with different voices
+- **Web Interface**: Easy-to-use Gradio interface for interactive use
+- **API Access**: RESTful API endpoints for programmatic access
 
-## Requirements
+## Access
 
-- Python 3.8+
-- CUDA-capable GPU (recommended) or CPU
-- Docker (optional)
+### Hugging Face Space
+🔗 **Web Interface**: https://activadee-tts-api.hf.space/
+🔗 **API Access**: https://activadee-tts-api.hf.space/gradio_api/docs
 
-## Installation
-
-### Using Docker
-
-```bash
-docker-compose up -d
-```
-
-### Manual Installation
+### Local Installation
 
 1. Clone the repository:
 ```bash
@@ -55,141 +47,105 @@ cd chatterbox-tts-api
 pip install -r requirements.txt
 ```
 
-3. Run the server:
+3. Run the application:
 ```bash
-python main.py
+python app.py
 ```
 
-The API will be available at `http://localhost:8000`
+The interface will be available at `http://localhost:7860`
 
 ## API Endpoints
 
-### Health Check
+The API is accessible via Gradio's built-in endpoints once `show_api=True` is enabled:
+
+### Single Voice TTS
 ```bash
-GET /health
+POST /gradio_api/call/speech_ui_to_json
 ```
 
-### Text-to-Speech
+**Parameters:**
+- `text` (string): Text to convert to speech
+- `voice_file` (file, optional): Audio file for voice cloning
+- `exaggeration` (float): Voice exaggeration level (0.0-1.0)
+- `cfg_weight` (float): Configuration weight (0.0-1.0)
+
+### Dialogue Generation
 ```bash
-POST /tts
+POST /gradio_api/call/dialogue_ui_to_json
 ```
 
-Parameters:
-- `text` (string, required): Text to convert to speech
-- `exaggeration` (float, default: 0.5): Voice exaggeration level
-- `cfg_weight` (float, default: 0.5): Configuration weight
-- `return_format` (string, default: "wav"): Audio format (wav/mp3)
-- `voice_sample` (file, optional): Audio file for voice cloning
-
-### Speaker Diarization
-```bash
-POST /speaker-diarization
-```
-
-Parameters:
-- `audio_file` (file, required): Audio file to analyze
-- `min_speakers` (int, optional): Minimum number of speakers
-- `max_speakers` (int, optional): Maximum number of speakers
-
-### Generate Dialogue Audio
-```bash
-POST /generate-dialogue-audio
-```
-
-Parameters:
-- `text` (string, required): Full dialogue text
-- `speaker_segments` (JSON string, required): Speaker segments with timing
-- `voice1_sample` (file, optional): Voice sample for first speaker
-- `voice2_sample` (file, optional): Voice sample for second speaker
-
-### Full Video Pipeline
-```bash
-POST /full-video-pipeline
-```
-
-Parameters:
-- `text` (string, required): Dialogue text
-- `background_video` (file, optional): Background video
-- `claude1_image` (file, optional): Image for first speaker
-- `claude2_image` (file, optional): Image for second speaker
-- `voice1_sample` (file, optional): Voice sample for first speaker
-- `voice2_sample` (file, optional): Voice sample for second speaker
+**Parameters:**
+- `text` (string): Dialogue text
+- `voice1_file` (file, optional): Voice sample for first speaker
+- `voice2_file` (file, optional): Voice sample for second speaker
+- `speaker_segments` (string): JSON string with speaker segments
 
 ## Usage Examples
 
-### Basic TTS (JSON Format)
+### Using Gradio Client (Recommended)
+```python
+from gradio_client import Client
+
+# Connect to the space
+client = Client("https://activadee-tts-api.hf.space/")
+
+# Single voice TTS
+result = client.predict(
+    text="Hello, this is a test of Chatterbox TTS.",
+    voice_file=None,  # or path to voice file for cloning
+    exaggeration=0.5,
+    cfg_weight=0.5,
+    api_name="/speech_ui_to_json"
+)
+print(f"Generated audio: {result}")
+
+# Dialogue generation
+dialogue_result = client.predict(
+    text="Hello there! How are you doing today?",
+    voice1_file=None,
+    voice2_file=None, 
+    speaker_segments='[{"speaker":"SPEAKER_00","text":"Hello there!"},{"speaker":"SPEAKER_01","text":"How are you doing today?"}]',
+    api_name="/dialogue_ui_to_json"
+)
+print(f"Generated dialogue: {dialogue_result}")
+```
+
+### Using REST API (Direct)
 ```python
 import requests
 
-# Using Gradio API endpoint
+# Single voice TTS
 response = requests.post(
-    "https://YOUR-USERNAME-chatterbox-zero.hf.space/api/predict",
+    "https://activadee-tts-api.hf.space/gradio_api/call/speech_ui_to_json",
     json={
-        "data": [{
-            "text": "Hello, this is a test of Chatterbox TTS.",
-            "voice_file": None,
-            "exaggeration": 0.5,
-            "cfg_weight": 0.5
-        }]
+        "data": [
+            "Hello, this is a test of Chatterbox TTS.",  # text
+            None,  # voice_file
+            0.5,   # exaggeration  
+            0.5    # cfg_weight
+        ],
+        "session_hash": "demo_session"
     }
 )
 
-# The response contains the audio file path
-result = response.json()
-audio_url = result["data"][0]  # URL to generated audio file
+# Check for event_id and poll for results
+print(response.json())
 ```
 
-### Voice Cloning (JSON Format)
-```python
-import requests
-
-# Upload voice file first, then use in TTS
-response = requests.post(
-    "https://YOUR-USERNAME-chatterbox-zero.hf.space/api/predict",
-    json={
-        "data": [{
-            "text": "This will sound like the voice sample.",
-            "voice_file": "path/to/uploaded/voice_sample.wav",
-            "exaggeration": 0.5,
-            "cfg_weight": 0.5
-        }]
-    }
-)
-
-result = response.json()
-audio_url = result["data"][0]  # URL to generated audio file
-```
-
-### Dialogue Generation (JSON Format)
-```python
-import requests
-
-response = requests.post(
-    "https://YOUR-USERNAME-chatterbox-zero.hf.space/api/predict",
-    json={
-        "data": [{
-            "text": "Hello there! How are you doing today?",
-            "voice1_file": None,
-            "voice2_file": None,
-            "speaker_segments": "[{\"speaker\":\"SPEAKER_00\",\"text\":\"Hello there!\"},{\"speaker\":\"SPEAKER_01\",\"text\":\"How are you doing today?\"}]"
-        }]
-    }
-)
-
-result = response.json()
-audio_url = result["data"][0]  # URL to generated dialogue audio
-```
-
-## Environment Variables
-
-- `CUDA_VISIBLE_DEVICES`: GPU device ID (default: "0")
-- `PORT`: API port (default: 8000)
+### Using n8n Node
+1. Install the n8n-nodes-gradio-client package
+2. Add the Gradio Client node to your workflow
+3. Configure:
+   - **Space URL**: `https://activadee-tts-api.hf.space/`
+   - **API Selection**: Auto-detect from Space
+   - **API Name**: Choose from `/speech_ui_to_json` or `/dialogue_ui_to_json`
+   - **Input Parameters**: `["Your text here", null, 0.5, 0.5]`
 
 ## API Documentation
 
-Interactive API documentation is available at:
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
+Once the Space is running with `show_api=True`, interactive API documentation is available at:
+- **Gradio API Docs**: https://activadee-tts-api.hf.space/gradio_api/docs
+- **Local API Docs**: `http://localhost:7860/gradio_api/docs` (when running locally)
 
 ## License
 
