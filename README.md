@@ -1,3 +1,21 @@
+---
+title: Chatterbox TTS API
+emoji: 🗣️
+colorFrom: blue
+colorTo: purple
+sdk: gradio
+sdk_version: "4.0.0"
+app_file: app.py
+pinned: false
+license: mit
+tags:
+  - text-to-speech
+  - voice-cloning
+  - audio
+  - ai
+  - chatterbox
+---
+
 # Chatterbox TTS API
 
 A standalone REST API service for Chatterbox TTS (Text-to-Speech) with voice cloning, speaker diarization, and dialogue generation capabilities.
