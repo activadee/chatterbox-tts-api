@@ -1,0 +1,46 @@
+# docker-compose.yml für Coolify
+version: '3.8'
+
+services:
+  chatterbox-tts:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chatterbox-tts-api
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CUDA_VISIBLE_DEVICES=0  # Wenn GPU verfügbar
+    volumes:
+      - chatterbox_models:/root/.cache/huggingface  # Model cache
+      - ./voices:/app/voices  # Vordefinierte Stimmen
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]  # Nur wenn NVIDIA GPU verfügbar
+
+volumes:
+  chatterbox_models:
+    driver: local
+
+# Optional: Nginx Proxy für bessere Performance
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - chatterbox-tts
+    restart: unless-stopped
