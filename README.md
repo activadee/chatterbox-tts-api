@@ -99,36 +99,67 @@ Parameters:
 
 ## Usage Examples
 
-### Basic TTS
+### Basic TTS (JSON Format)
+```python
+import requests
+
+# Using Gradio API endpoint
+response = requests.post(
+    "https://YOUR-USERNAME-chatterbox-zero.hf.space/api/predict",
+    json={
+        "data": [{
+            "text": "Hello, this is a test of Chatterbox TTS.",
+            "voice_file": None,
+            "exaggeration": 0.5,
+            "cfg_weight": 0.5
+        }]
+    }
+)
+
+# The response contains the audio file path
+result = response.json()
+audio_url = result["data"][0]  # URL to generated audio file
+```
+
+### Voice Cloning (JSON Format)
+```python
+import requests
+
+# Upload voice file first, then use in TTS
+response = requests.post(
+    "https://YOUR-USERNAME-chatterbox-zero.hf.space/api/predict",
+    json={
+        "data": [{
+            "text": "This will sound like the voice sample.",
+            "voice_file": "path/to/uploaded/voice_sample.wav",
+            "exaggeration": 0.5,
+            "cfg_weight": 0.5
+        }]
+    }
+)
+
+result = response.json()
+audio_url = result["data"][0]  # URL to generated audio file
+```
+
+### Dialogue Generation (JSON Format)
 ```python
 import requests
 
 response = requests.post(
-    "http://localhost:8000/tts",
-    data={"text": "Hello, this is a test of Chatterbox TTS."},
-    stream=True
+    "https://YOUR-USERNAME-chatterbox-zero.hf.space/api/predict",
+    json={
+        "data": [{
+            "text": "Hello there! How are you doing today?",
+            "voice1_file": None,
+            "voice2_file": None,
+            "speaker_segments": "[{\"speaker\":\"SPEAKER_00\",\"text\":\"Hello there!\"},{\"speaker\":\"SPEAKER_01\",\"text\":\"How are you doing today?\"}]"
+        }]
+    }
 )
 
-with open("output.wav", "wb") as f:
-    for chunk in response.iter_content(chunk_size=8192):
-        f.write(chunk)
-```
-
-### Voice Cloning
-```python
-import requests
-
-with open("voice_sample.wav", "rb") as voice_file:
-    response = requests.post(
-        "http://localhost:8000/tts",
-        data={"text": "This will sound like the voice sample."},
-        files={"voice_sample": voice_file},
-        stream=True
-    )
-
-with open("cloned_voice.wav", "wb") as f:
-    for chunk in response.iter_content(chunk_size=8192):
-        f.write(chunk)
+result = response.json()
+audio_url = result["data"][0]  # URL to generated dialogue audio
 ```
 
 ## Environment Variables
