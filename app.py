@@ -56,7 +56,7 @@ def generate_speech(json_input):
         ta.save(output_path, wav, model.sr)
         
         return output_path, f"✅ Generated speech for: '{text[:50]}...'"
-        
+ 
     except json.JSONDecodeError as e:
         return None, f"❌ Invalid JSON: {str(e)}"
     except KeyError as e:
