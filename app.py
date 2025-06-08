@@ -45,10 +45,10 @@ def generate_speech(text, voice_file, exaggeration, cfg_weight):
         ta.save(output_path, wav, model.sr)
         # logging
         print(f"Generated speech saved to {output_path}")
-        return output_path, None
+        return output_path
  
     except Exception as e:
-        return None, f"❌ Error: {str(e)}"
+        return None
 
 @spaces.GPU
 def generate_dialogue(text, voice1_file, voice2_file, speaker_segments_str):
@@ -256,7 +256,7 @@ with gr.Blocks(title="Chatterbox TTS API", theme=gr.themes.Soft()) as demo:
     generate_btn.click(
         generate_speech,
         inputs=[text_input, voice_file, exaggeration, cfg_weight],
-        outputs=[audio_output, status_output]
+        outputs=[audio_output]
     )
     
     dialogue_btn.click(
