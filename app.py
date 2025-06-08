@@ -45,7 +45,7 @@ def generate_speech(text, voice_file, exaggeration, cfg_weight):
         ta.save(output_path, wav, model.sr)
         # logging
         print(f"Generated speech saved to {output_path}")
-        return output_path
+        return output_path, "✅ Speech generated successfully"
  
     except Exception as e:
         return None, f"❌ Error: {str(e)}"
