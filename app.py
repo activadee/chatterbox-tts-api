@@ -19,20 +19,9 @@ def get_model():
     return model
 
 @spaces.GPU  # Zero GPU Decorator - wichtig!
-def generate_speech(json_input):
-    """TTS Generation mit Zero GPU - JSON Input"""
+def generate_speech(text, voice_file, exaggeration, cfg_weight):
+    """TTS Generation mit Zero GPU - direkte Argumente"""
     try:
-        import json
-        if isinstance(json_input, str):
-            params = json.loads(json_input)
-        else:
-            params = json_input
-        
-        text = params.get("text", "")
-        exaggeration = params.get("exaggeration", 0.5)
-        cfg_weight = params.get("cfg_weight", 0.5)
-        voice_file = params.get("voice_file", None)
-        
         if not text.strip():
             return None, "Please enter some text"
         
@@ -58,32 +47,18 @@ def generate_speech(json_input):
         print(f"Generated speech saved to {output_path}")
         return output_path
  
-    except json.JSONDecodeError as e:
-        return None, f"❌ Invalid JSON: {str(e)}"
-    except KeyError as e:
-        return None, f"❌ Missing parameter: {str(e)}"
     except Exception as e:
         return None, f"❌ Error: {str(e)}"
 
 @spaces.GPU
-def generate_dialogue(json_input):
-    """Multi-speaker dialogue generation - JSON Input"""
+def generate_dialogue(text, voice1_file, voice2_file, speaker_segments_str):
+    """Multi-speaker dialogue generation - directe Argumente"""
     try:
         import json
-        if isinstance(json_input, str):
-            params = json.loads(json_input)
-        else:
-            params = json_input
-        
-        text = params.get("text", "")
-        voice1_file = params.get("voice1_file", None)
-        voice2_file = params.get("voice2_file", None)
-        speaker_segments_json = params.get("speaker_segments", "")
-        
         if not text.strip():
             return None, "Please enter some text"
         
-        segments = json.loads(speaker_segments_json) if speaker_segments_json else []
+        segments = json.loads(speaker_segments_str) if speaker_segments_str else []
         
         if not segments:
             # Simple split for demo
@@ -126,10 +101,8 @@ def generate_dialogue(json_input):
         
         return output_path, f"✅ Generated dialogue with {len(segments)} speakers"
         
-    except json.JSONDecodeError as e:
-        return None, f"❌ Invalid JSON: {str(e)}"
-    except KeyError as e:
-        return None, f"❌ Missing parameter: {str(e)}"
+    except json.JSONDecodeError as e: # Specific to speaker_segments_str parsing
+        return None, f"❌ Invalid Speaker Segments JSON: {str(e)}"
     except Exception as e:
         return None, f"❌ Error: {str(e)}"
 
@@ -206,42 +179,72 @@ with gr.Blocks(title="Chatterbox TTS API", theme=gr.themes.Soft()) as demo:
     with gr.Tab("📖 API Usage"):
         gr.Markdown("""
         ## API Endpoints
+
+        The API expects arguments to be passed as a list in the `data` field for HTTP requests, or directly as arguments for `gradio_client`.
         
-        ### Basic TTS (JSON Format)
+        ### Basic TTS
+        Corresponds to the first endpoint (`api_name="/predict"`).
+        Function signature: `generate_speech(text, voice_file, exaggeration, cfg_weight)`
+
+        **`gradio_client` Example:**
         ```python
         from gradio_client import Client
-        client = Client("YOUR-USERNAME/chatterbox-zero")
-        result = client.predict({
-            "text": "Hello world!",
-            "voice_file": None,
-            "exaggeration": 0.5,
-            "cfg_weight": 0.5
-        }, api_name="/predict")
+
+        client = Client("YOUR-USERNAME/chatterbox-zero") # Replace with your Space ID
+        result = client.predict(
+            "Hello world!",    # text (string)
+            None,              # voice_file (None or path to uploaded audio file)
+            0.5,               # exaggeration (float)
+            0.5,               # cfg_weight (float)
+            api_name="/predict"
+        )
+        print(f"Generated audio saved at: {result[0]}") # result is a tuple (output_audio_path, status_message)
+        # or print(f"Error: {result[1]}") if an error occurred
         ```
         
-        ### For n8n HTTP Request:
+        **n8n / HTTP Request Example:**
         ```json
         POST https://YOUR-USERNAME-chatterbox-zero.hf.space/api/predict
         {
-          "data": [{
-            "text": "Your text here",
-            "voice_file": null,
-            "exaggeration": 0.5,
-            "cfg_weight": 0.5
-          }]
+          "data": [
+            "Your text here", // text (string)
+            null,             // voice_file (None or URL/path to audio if server setup allows remote fetching)
+            0.5,              // exaggeration (float)
+            0.5               // cfg_weight (float)
+          ]
         }
         ```
         
-        ### Dialogue Generation:
+        ### Dialogue Generation
+        Corresponds to the second endpoint (`api_name="/predict_1"`).
+        Function signature: `generate_dialogue(text, voice1_file, voice2_file, speaker_segments_str)`
+
+        **`gradio_client` Example:**
+        ```python
+        from gradio_client import Client
+
+        client = Client("YOUR-USERNAME/chatterbox-zero") # Replace with your Space ID
+        result = client.predict(
+            "Speaker 1: Hello! Speaker 2: Hi there.", # text (string, full dialogue text)
+            None,                                     # voice1_file (None or path to Speaker 1 audio)
+            None,                                     # voice2_file (None or path to Speaker 2 audio)
+            "[{\"speaker\":\"SPEAKER_00\",\"text\":\"Hello!\"}, {\"speaker\":\"SPEAKER_01\",\"text\":\"Hi there.\"}]", # speaker_segments_str (JSON string)
+            api_name="/predict_1"
+        )
+        print(f"Generated dialogue audio saved at: {result[0]}") # result is a tuple (output_audio_path, status_message)
+        # or print(f"Error: {result[1]}") if an error occurred
+        ```
+
+        **n8n / HTTP Request Example:**
         ```json
-        POST https://YOUR-USERNAME-chatterbox-zero.hf.space/api/predict
+        POST https://YOUR-USERNAME-chatterbox-zero.hf.space/api/predict_1
         {
-          "data": [{
-            "text": "Hello there! How are you doing today?",
-            "voice1_file": null,
-            "voice2_file": null,
-            "speaker_segments": "[{\"speaker\":\"SPEAKER_00\",\"text\":\"Hello there!\"},{\"speaker\":\"SPEAKER_01\",\"text\":\"How are you doing today?\"}]"
-          }]
+          "data": [
+            "Speaker 1: Hello! Speaker 2: Hi there.", // text (string, full dialogue text)
+            null,                                     // voice1_file (None or URL/path)
+            null,                                     // voice2_file (None or URL/path)
+            "[{\"speaker\":\"SPEAKER_00\",\"text\":\"Hello!\"}, {\"speaker\":\"SPEAKER_01\",\"text\":\"Hi there.\"}]" // speaker_segments_str (JSON string)
+          ]
         }
         ```
         
@@ -249,34 +252,15 @@ with gr.Blocks(title="Chatterbox TTS API", theme=gr.themes.Soft()) as demo:
         Upload audio file in the interface or pass file path via API.
         """)
     
-    # Helper functions for UI to JSON conversion
-    def speech_ui_to_json(text, voice_file, exaggeration, cfg_weight):
-        json_input = {
-            "text": text,
-            "voice_file": voice_file,
-            "exaggeration": exaggeration,
-            "cfg_weight": cfg_weight
-        }
-        return generate_speech(json_input)
-    
-    def dialogue_ui_to_json(text, voice1_file, voice2_file, speaker_segments):
-        json_input = {
-            "text": text,
-            "voice1_file": voice1_file,
-            "voice2_file": voice2_file,
-            "speaker_segments": speaker_segments
-        }
-        return generate_dialogue(json_input)
-    
     # Event handlers
     generate_btn.click(
-        speech_ui_to_json,
+        generate_speech,
         inputs=[text_input, voice_file, exaggeration, cfg_weight],
         outputs=[audio_output, status_output]
     )
     
     dialogue_btn.click(
-        dialogue_ui_to_json,
+        generate_dialogue,
         inputs=[dialogue_text, voice1_file, voice2_file, speaker_segments],
         outputs=[dialogue_audio, dialogue_status]
     )
