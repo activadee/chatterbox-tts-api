@@ -23,10 +23,12 @@ A Gradio-based web interface and API for Chatterbox TTS (Text-to-Speech) with vo
 ## Features
 
 - **Text-to-Speech**: Convert text to natural-sounding speech with voice cloning
-- **Voice Cloning**: Clone voices from audio samples  
+- **Voice Cloning**: Clone voices from audio samples (supports file uploads, URLs, and Google Drive links)
 - **Dialogue Generation**: Generate multi-speaker conversations with different voices
 - **Web Interface**: Easy-to-use Gradio interface for interactive use
 - **API Access**: RESTful API endpoints for programmatic access
+- **URL Support**: Direct audio URLs and Google Drive sharing links
+- **Auto-redirect**: Handles Google Drive redirects automatically
 
 ## Access
 
